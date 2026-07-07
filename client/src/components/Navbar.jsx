@@ -1,72 +1,26 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
-const Navbar = () => {
-  const navigate = useNavigate();
+const link = ({ isActive }) =>
+  `px-3 py-2 rounded-md text-sm transition-colors ${
+    isActive ? "text-ink font-medium" : "text-ink-muted hover:text-ink"
+  }`;
 
-  const handleLoginClick = () => {
-    navigate("/login");
-  };
-
-  const handleLogoClick = () => {
-    navigate("/");
-  };
-
-  const handleUploadClick = () => {
-    navigate("/upload");
-  };
-
-  const handleGenerate = () => {
-    navigate("/generate-image");
-  };
-  const handleSearchClick = () => {
-    navigate("/search");
-  };
+export default function Navbar() {
   return (
-    <nav className="relative flex justify-between items-center px-8 py-4 bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 text-white  shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out overflow-hidden backdrop-filter backdrop-blur-lg bg-opacity-60">
-      {/* Decorative Streak Lines */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-900 to-transparent opacity-20 animate-pulse" />
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-transparent opacity-20 animate-[pulse_4s_ease-in-out_infinite]" />
-      </div>
-
-      {/* Logo Section */}
-      <h1
-        className="text-3xl font-bold cursor-pointer z-10 p-2 transition-colors duration-300 ease-in-out transform hover:scale-110 bg-gradient-to-r from-pink-500 via-purple-400 to-blue-400 bg-clip-text text-transparent"
-        onClick={handleLogoClick}
-      >
-        PixelPerfect
-      </h1>
-
-      {/* Button Group */}
-      <div className="flex space-x-4 z-10">
-        <button
-          className="bg-gradient-to-r from-pink-500 to-fuchsia-500  bg-opacity-70 hover:bg-green-600 text-white py-3 px-6 rounded-full shadow-md hover:shadow-xl transform transition-all duration-300 ease-in-out hover:scale-110 text-base backdrop-filter backdrop-blur-md"
-          onClick={handleUploadClick}
-        >
-          Upload
-        </button>
-        <button
-          className="bg-gradient-to-r from-fuchsia-500 to-purple-400 bg-opacity-70 hover:bg-purple-600 text-white py-3 px-6 rounded-full shadow-md hover:shadow-xl transform transition-all duration-300 ease-in-out hover:scale-110 text-base backdrop-filter backdrop-blur-md"
-          onClick={handleGenerate}
-        >
-          Generate
-        </button>
-
-        <button
-          className="bg-gradient-to-r from-purple-500 to-blue-500 bg-opacity-70  hover:bg-yellow-600 text-white py-3 px-6 rounded-full shadow-md hover:shadow-xl transform transition-all duration-300 ease-in-out hover:scale-110 text-base backdrop-filter backdrop-blur-md"
-          onClick={handleSearchClick}
-        >
-          Search
-        </button>
-        <button
-          className="bg-gradient-to-r from-blue-500 to-blue-400 bg-opacity-70 hover:bg-green-600 text-white py-3 px-6 rounded-full shadow-md hover:shadow-xl transform transition-all duration-300 ease-in-out hover:scale-110 text-base backdrop-filter backdrop-blur-md"
-          onClick={handleLoginClick}
-        >
-          Login
-        </button>
+    <nav className="sticky top-0 z-20 bg-cream/85 backdrop-blur border-b border-surface-border">
+      <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+        <NavLink to="/" className="flex items-center gap-2">
+          <span className="w-8 h-8 bg-accent-btn rounded-lg flex items-center justify-center text-white font-mono text-sm font-semibold">
+            PP
+          </span>
+          <span className="text-lg font-display font-semibold text-ink">PixelPerfect</span>
+        </NavLink>
+        <div className="flex items-center gap-1">
+          <NavLink to="/" className={link} end>Home</NavLink>
+          <NavLink to="/generate" className={link}>Generate</NavLink>
+          <NavLink to="/analyze" className={link}>Analyze</NavLink>
+        </div>
       </div>
     </nav>
   );
-};
-export default Navbar;
+}

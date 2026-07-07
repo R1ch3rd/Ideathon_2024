@@ -3,9 +3,6 @@ from google.generativeai import configure, GenerativeModel, GenerationConfig
 from PIL import Image
 import io
 from fastapi.middleware.cors import CORSMiddleware
-from torch import autocast
-import torch
-from diffusers import StableDiffusionPipeline
 import requests
 import base64
 import os
@@ -30,13 +27,23 @@ auth_token = os.getenv('auth_token')
 fire_creds = os.getenv('CREDS')
 bucket_url = os.getenv("BUCKET")
 
-cred = credentials.Certificate(fire_creds)
-initialize_app(cred, {'storageBucket': bucket_url}) 
-
-db = firestore.client()
+# Firebase image library is optional: without credentials the API runs in
+# demo mode (caption/summary/enhance/generate work; the library endpoints
+# return 503).
+db = None
+try:
+    if fire_creds and os.path.exists(fire_creds):
+        cred = credentials.Certificate(fire_creds)
+        initialize_app(cred, {'storageBucket': bucket_url})
+        db = firestore.client()
+        print("Firebase connected")
+    else:
+        print("No Firebase credentials; image library disabled (demo mode)")
+except Exception as e:
+    print(f"Firebase init failed ({e}); image library disabled")
 
 configure(api_key=api_key)
-model = GenerativeModel('gemini-1.5-pro')
+model = GenerativeModel('gemini-flash-latest')
 
 app = FastAPI()
 
@@ -101,7 +108,8 @@ def check_duplicate(upload_file):
 
 @app.post("/upload_image/")
 async def upload_image(file: UploadFile = File(None), url: str = Form(None), summary: str = Form(None), caption: str = Form(None), flags: str = Form('None')):
- 
+    if db is None:
+        raise HTTPException(status_code=503, detail="Image library is disabled in the public demo (no Firebase backing store).")
     if file:
 
         image = Image.open(io.BytesIO(await file.read())).convert('RGB')
@@ -132,6 +140,8 @@ async def upload_image(file: UploadFile = File(None), url: str = Form(None), sum
 
 @app.post("/find_image/")
 async def find_image(prompt: str = Form(None)):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Image library is disabled in the public demo (no Firebase backing store).")
     print(prompt)
     searcher = ImageSearcher(db)
     result = searcher.check_image(prompt)
@@ -159,7 +169,7 @@ async def generate_summary(file: UploadFile = File(None), url: str = Form(None))
 
     generation_config = GenerationConfig(
         temperature=0.7,
-        max_output_tokens=200
+        max_output_tokens=1024
     )
 
     prompt = [
@@ -201,22 +211,39 @@ app.add_middleware(
     allow_headers=['*']
 )
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model_id = "CompVis/stable-diffusion-v1-4"
-pipe = StableDiffusionPipeline.from_pretrained(model_id, revision="fp16", torch_dtype=torch.float16, use_auth_token=auth_token)
-pipe.to(device)
+# Image generation originally ran Stable Diffusion v1.4 locally on GPU.
+# GPU is out of the $0 budget and Gemini image output has no meaningful
+# free quota, so the demo generates through Pollinations (free, keyless).
+from urllib.parse import quote
 
 @app.post("/generate-image/")
 async def generate_image(prompt: str = Form(...)):
-    with autocast(device):
-        image = pipe(prompt, guidance_scale=8.5).images[0]
+    try:
+        url = (
+            f"https://image.pollinations.ai/prompt/{quote(prompt)}"
+            "?width=512&height=512&nologo=true"
+        )
+        resp = requests.get(url, timeout=120)
+        resp.raise_for_status()
+        # same contract as the original endpoint: base64 body
+        imgstr = base64.b64encode(resp.content).decode("utf-8")
+        return Response(content=imgstr, media_type="image/png")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Image generation failed: {e}")
 
-    image.save("testimage.png")
-    buffer = BytesIO()
-    image.save(buffer, format='PNG')
-    imgstr = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
-    return Response(content=imgstr, media_type='image/png')
+@app.get("/health")
+def health_check():
+    return {
+        "status": "ok",
+        "features": {
+            "caption": "loaded",
+            "summary": "configured" if api_key else "not configured",
+            "enhance": "loaded",
+            "generate": "configured" if api_key else "not configured",
+            "library": "connected" if db is not None else "disabled (demo mode)",
+        },
+    }
     
 
 if __name__ == "__main__":
