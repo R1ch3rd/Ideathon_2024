@@ -1,74 +1,55 @@
-# PixelPerfect 📸
-> AI-Powered Image Transformation at Your Fingertips
+# PixelPerfect
 
-PixelPerfect is a cutting-edge AI-powered image processing application designed to transform your visuals with precision and speed. Built using PyTorch for advanced neural networks, FastAPI for seamless backend integration, and React for a dynamic and responsive user interface, PixelPerfect delivers fast and powerful image enhancements. Whether it's generating captions or summaries or sharpening images, this application offers real-time processing with storage backed by Firebase, ensuring your images are securely stored and easily accessible. PixelPerfect empowers users to achieve high-quality results with minimal effort.
+An AI image studio: generate images from text prompts, caption and summarize
+them, and sharpen photos.
 
+**Live demo:** https://pixelperfect-nu.vercel.app
+**API:** https://r1ch3rd-pixelperfect-api.hf.space
 
-## Image Processing
+## Features
 
-PixelPerfect leverages a range of powerful AI models to provide an enhanced image processing experience. Using the Gemini API, the app creates image summaries and captions through a Hugging Face model, generating detailed and context-aware descriptions of images. For image enhancement, PixelPerfect implements the ESRGAN (Enhanced Super-Resolution Generative Adversarial Network) model, allowing users to upscale and improve image quality with incredible sharpness and detail retention. Additionally, PixelPerfect uses Stable Diffusion for high-quality image generation, offering users the ability to create stunning visuals from text inputs or modify existing images with AI-driven creativity.
+| Feature | How it works |
+|---|---|
+| **Generate** | Text prompt to image |
+| **Caption** | ViT-GPT2 (`nlpconnect/vit-gpt2-image-captioning`) produces a short caption |
+| **Summarize** | Gemini vision writes a detailed description of the image |
+| **Enhance** | OpenCV unsharp-mask sharpening |
 
-![Architecture](https://github.com/Saminathan-77/Ideathon_2024/blob/main/img/Architecture.jpeg)
+## Architecture
 
-## Usage
-Create the project directory.
-```shell
-mkdir pixelperfect
-```
-Move in to the project directory.
-```shell
+- **Frontend** — React + Vite + Tailwind, deployed on Vercel
+- **Backend** — FastAPI on a Hugging Face Space (Docker, CPU); the Gemini key is
+  a Space secret.
+
+### Demo scope vs. original
+
+The hackathon build ran **Stable Diffusion v1.4 on GPU** for generation and used
+a **Firebase-backed, searchable image library** (upload images, then find them by
+natural-language description via ORB/SSIM duplicate detection and Gemini search).
+
+To fit a $0 hosting budget on CPU, the public demo:
+
+- generates images through a free keyless image API instead of local Stable
+  Diffusion (Gemini image output has no meaningful free quota), and
+- disables the Firebase library/search (those endpoints return 503).
+
+Caption, summary, and enhance are unchanged and run on the Space.
+
+## Run locally
+
+```bash
+# backend
+pip install -r requirements-space.txt
+API_KEY=<your-gemini-key> uvicorn api:app --reload --port 8000
+
+# frontend
 cd client
-```
-Install the required packages for the react application.
-```
 npm install
-```
-Install the required packages for the model.
-```
-pip install -r requirements.txt
+VITE_API_URL=http://localhost:8000 npm run dev
 ```
 
-Install the appropriate torch version.
-```
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-```
+## Notes
 
-Start the application
-```shell
-uvicorn api:app --reload
-```
-
-```shell
-cd client
-```
-
-```shell
-npm run dev
-```
-
-## All Our Features
-
-### Home Page
-![Home](https://github.com/Saminathan-77/Ideathon_2024/blob/main/img/home.jpeg)
-
-### Login Page
-![Login](https://github.com/Saminathan-77/Ideathon_2024/blob/main/img/login.jpeg)
-
-### Upload Page
-![Upload](https://github.com/Saminathan-77/Ideathon_2024/blob/main/img/upload.jpeg)
-
-### Enhacing Image
-![Enhance](https://github.com/Saminathan-77/Ideathon_2024/blob/main/img/enhance.jpeg)
-
-### Duplicate Image
-![Duplicate](https://github.com/Saminathan-77/Ideathon_2024/blob/main/img/duplicate.jpeg)
-
-### Generation Page
-![Generate](https://github.com/Saminathan-77/Ideathon_2024/blob/main/img/generate.jpeg)
-
-### Search Page
-![Search](https://github.com/Saminathan-77/Ideathon_2024/blob/main/img/search.jpeg)
-
-## Feedback
-Please reach out if you find any issues.
-
+- The demo backend sleeps after ~48h idle on the free tier; the first request
+  after a quiet spell takes ~30s to wake.
+- Built with a team during a hackathon.
